@@ -1,0 +1,7 @@
+{
+  "asset_id": "PV_INVERTER_001",
+  "failure_probability": 0.0,
+  "expected_ttf_days": 10338.5,
+  "expected_rul_days": 10942.0,
+  "confidence": 1.0
+}

@@ -1,0 +1,16 @@
+{
+  "feature_cols": [
+    "vdc_mean",
+    "vdc_std",
+    "pdc_mean",
+    "pdc_std",
+    "pdc_delta",
+    "pdc_slope",
+    "efficiency_norm"
+  ],
+  "window": 50,
+  "seq_len": 30,
+  "downsample": 10,
+  "failure_horizon_days": 30,
+  "design_life_days": 10958
+}

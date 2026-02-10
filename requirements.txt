@@ -1,0 +1,11 @@
+langchain-google-genai
+python-dotenv
+joblib
+torch
+numpy
+pandas
+scikit-learn
+xgboost
+fastapi
+uvicorn
+safetensors
