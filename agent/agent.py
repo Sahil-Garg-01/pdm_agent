@@ -1,5 +1,7 @@
 import json
 import re
+import os
+import yaml
 from langchain_google_genai import GoogleGenerativeAI
 
 class MaintenanceAgent:
@@ -9,27 +11,21 @@ class MaintenanceAgent:
             temperature=temperature,
             google_api_key=api_key
         )
+        self.prompts = self._load_prompts()
+
+    def _load_prompts(self) -> dict:
+        """Load prompts from YAML file."""
+        # Get the directory where this file is located
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        prompts_file = os.path.join(current_dir, 'prompts.yaml')
+        
+        with open(prompts_file, 'r') as f:
+            return yaml.safe_load(f)
 
     def _build_prompt(self, phase2_output: dict) -> str:
         """Build the maintenance analysis prompt."""
-        return f"""
-You are a maintenance decision AI.
-You must reason ONLY from the provided JSON.
-Do NOT invent data.
-
-INPUT:
-{json.dumps(phase2_output, indent=2)}
-
-MANDATORY: Return output strictly in JSON format only. Do not include any markdown, code blocks, or extra text.
-
-OUTPUT FORMAT:
-{{
-  "diagnosis": "...",
-  "urgency": "Low | Medium | High",
-  "recommended_action": "...",
-  "justification": ["...", "..."]
-}}
-"""
+        user_template = self.prompts['maintenance']['user_template']
+        return user_template.format(phase2_output=json.dumps(phase2_output, indent=2))
 
     def _parse_response(self, response: str) -> dict:
         """Parse LLM response, handling various JSON formats."""

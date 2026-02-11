@@ -4,41 +4,43 @@ import joblib
 import torch
 import numpy as np
 import pandas as pd
+import logging
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import IsolationForest
 from safetensors.torch import load_file
 
 from ml.features import build_features
 from ml.lstm_model import LSTMAutoencoder
+from src.config import MLConfig
+
+logger = logging.getLogger(__name__)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ARTIFACTS_DIR = os.path.join(BASE_DIR, "artifacts")
 
+
 class MLEngine:
     def __init__(self):
-        # Load configuration
-        self._load_config()
-        # Load all models
+        logger.info("Initializing ML Engine...")
+        self._load_ml_config()
         self._load_scaler()
         self._load_isolation_forest()
         self._load_xgboost_models()
         self._load_lstm_model()
+        logger.info("ML Engine initialized successfully")
 
-    def _load_config(self):
-        """Load ML configuration from JSON."""
-        with open(os.path.join(ARTIFACTS_DIR, "ml_config.json")) as f:
-            self.config = json.load(f)
-
-        self.feature_cols = self.config["feature_cols"]
-        self.window = self.config["window"]
-        self.seq_len = self.config["seq_len"]
-        self.design_life_days = self.config["design_life_days"]
+    def _load_ml_config(self):
+        """Load ML configuration from config."""
+        config = MLConfig.load()
+        self.feature_cols = config["feature_cols"]
+        self.window = config["window"]
+        self.seq_len = config["seq_len"]
+        self.design_life_days = config["design_life_days"]
 
     def _load_scaler(self):
         """Load and reconstruct StandardScaler from JSON."""
         with open(os.path.join(ARTIFACTS_DIR, "scaler.json"), "r") as f:
             params = json.load(f)
-        
         self.scaler = StandardScaler()
         self.scaler.mean_ = np.array(params["mean"])
         self.scaler.scale_ = np.array(params["scale"])
@@ -58,10 +60,8 @@ class MLEngine:
     def _load_xgboost_models(self):
         """Load XGBoost models from JSON artifacts."""
         import xgboost as xgb
-        
         self.ttf_model = xgb.XGBRegressor()
         self.ttf_model.load_model(os.path.join(ARTIFACTS_DIR, "xgb_ttf.json"))
-        
         self.fail_model = xgb.XGBClassifier()
         self.fail_model.load_model(os.path.join(ARTIFACTS_DIR, "xgb_fail.json"))
 
@@ -77,57 +77,33 @@ class MLEngine:
 
     def _compute_anomalies(self, df_scaled: pd.DataFrame) -> tuple:
         """Compute anomaly scores from LSTM and IsolationForest.
-        
-        Returns:
-            (anomaly_lstm, health) tuple
+        Returns: (anomaly_lstm, health) tuple
         """
-        # --- Isolation Forest anomaly ---
         df_scaled["anomaly_iforest"] = -self.iso.decision_function(df_scaled)
-
-        # --- LSTM anomaly ---
         X = df_scaled[self.feature_cols].values
         X_seq = np.array([X[-self.seq_len:]])
-
         with torch.no_grad():
             recon = self.lstm(torch.tensor(X_seq, dtype=torch.float32))
-
         anomaly_lstm = float(((recon - torch.tensor(X_seq)) ** 2).mean())
-
-        # --- Health (0–1) ---
-        # Normalize anomaly_lstm (assuming max error ~1e6 from training)
         anomaly_norm = min(anomaly_lstm / 1e6, 1.0)
         health = max(0.0, 1.0 - anomaly_norm)
-
         return anomaly_lstm, health
 
     def _make_predictions(self, df_scaled: pd.DataFrame, anomaly_lstm: float, health: float) -> dict:
         """Make TTF and failure probability predictions.
-        
-        Returns:
-            Dictionary with ttf, failure_prob, and rul predictions
+        Returns: Dictionary with ttf, failure_prob, and rul predictions
         """
         latest_features = df_scaled[self.feature_cols].iloc[[-1]].copy()
         latest_features["anomaly_lstm"] = anomaly_lstm
         latest_features["health_index"] = health
-
         expected_ttf_days = float(
             self.ttf_model.predict(latest_features, validate_features=False)[0]
         )
-
         failure_probability = float(
             self.fail_model.predict_proba(latest_features, validate_features=False)[0][1]
         )
-
-        # --- RUL ---
         expected_rul_days = float(health * self.design_life_days)
-
-        # --- Confidence ---
-        confidence = round(
-            0.5 * abs(failure_probability - 0.5) * 2
-            + 0.5 * health,
-            2
-        )
-
+        confidence = round(0.5 * abs(failure_probability - 0.5) * 2 + 0.5 * health, 2)
         return {
             "ttf_days": expected_ttf_days,
             "failure_prob": failure_probability,
@@ -136,26 +112,17 @@ class MLEngine:
         }
 
     def predict_from_raw(self, raw_df: pd.DataFrame):
-        # --- Feature engineering ---
+        logger.info("ML analysis start")
         df = build_features(raw_df, self.window)
         df = df[self.feature_cols].dropna()
-
         if len(df) < self.seq_len:
             raise ValueError("Not enough data for LSTM sequence")
-
-        # --- Scaling ---
         df_scaled = pd.DataFrame(
-            self.scaler.transform(df),
-            columns=self.feature_cols,
-            index=df.index
+            self.scaler.transform(df), columns=self.feature_cols, index=df.index
         )
-
-        # --- Compute anomalies ---
         anomaly_lstm, health = self._compute_anomalies(df_scaled)
-
-        # --- Make predictions ---
         predictions = self._make_predictions(df_scaled, anomaly_lstm, health)
-
+        logger.info("ML analysis end")
         return {
             "asset_id": "PV_INVERTER_001",
             "failure_probability": round(predictions["failure_prob"], 2),

@@ -1,0 +1,19 @@
+maintenance:
+  system: |
+    You are a maintenance decision AI.
+    You must reason ONLY from the provided JSON.
+    Do NOT invent data.
+  
+  user_template: |
+    INPUT:
+    {phase2_output}
+    
+    MANDATORY: Return output strictly in JSON format only. Do not include any markdown, code blocks, or extra text.
+    
+    OUTPUT FORMAT:
+    {{
+      "diagnosis": "...",
+      "urgency": "Low | Medium | High",
+      "recommended_action": "...",
+      "justification": ["...", "..."]
+    }}
