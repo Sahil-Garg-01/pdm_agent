@@ -1,4 +1,5 @@
 import json
+import re
 from langchain_google_genai import GoogleGenerativeAI
 
 class MaintenanceAgent:
@@ -9,8 +10,9 @@ class MaintenanceAgent:
             google_api_key=api_key
         )
 
-    def run(self, phase2_output: dict) -> dict:
-        prompt = f"""
+    def _build_prompt(self, phase2_output: dict) -> str:
+        """Build the maintenance analysis prompt."""
+        return f"""
 You are a maintenance decision AI.
 You must reason ONLY from the provided JSON.
 Do NOT invent data.
@@ -29,12 +31,22 @@ OUTPUT FORMAT:
 }}
 """
 
-        response = self.llm.invoke(prompt)
+    def _parse_response(self, response: str) -> dict:
+        """Parse LLM response, handling various JSON formats."""
         try:
             return json.loads(response)
         except json.JSONDecodeError:
-            import re
-            match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL) or re.search(r'\{.*\}', response, re.DOTALL)
+            # Try extracting JSON from markdown code blocks
+            match = re.search(r'```json\s*(.*?)\s*```', response, re.DOTALL)
             if match:
-                return json.loads(match.group(1) if '```' in response else match.group(0))
+                return json.loads(match.group(1))
+            # Try extracting raw JSON object
+            match = re.search(r'\{.*\}', response, re.DOTALL)
+            if match:
+                return json.loads(match.group(0))
             raise ValueError(f"Could not parse LLM response: {response[:200]}")
+
+    def run(self, phase2_output: dict) -> dict:
+        prompt = self._build_prompt(phase2_output)
+        response = self.llm.invoke(prompt)
+        return self._parse_response(response)
