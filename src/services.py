@@ -12,12 +12,12 @@ class AnalysisService:
         self.config = config
         self.ml_engine = MLEngine()
 
-    def analyze(self, vdc1: list, idc1: list, api_key: str) -> tuple:
+    def analyze(self, vdc1: list, idc1: list, api_key: str, asset_id: str = None) -> tuple:
         """Analyze sensor data and return ML and agent outputs."""
         logger.info(f"Complete analysis start - processing {len(vdc1)} data points")
         validate_sensor_data(vdc1, idc1)
         raw_df = prepare_dataframe(vdc1, idc1)
-        ml_output = self.ml_engine.predict_from_raw(raw_df)
+        ml_output = self.ml_engine.predict_from_raw(raw_df, asset_id)
         agent_output = self.get_agent_output(api_key, ml_output)
         
         logger.info("Complete analysis end")

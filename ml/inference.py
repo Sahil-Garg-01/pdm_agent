@@ -111,7 +111,7 @@ class MLEngine:
             "confidence": confidence
         }
 
-    def predict_from_raw(self, raw_df: pd.DataFrame):
+    def predict_from_raw(self, raw_df: pd.DataFrame, asset_id: str = None):
         logger.info("ML analysis start")
         df = build_features(raw_df, self.window)
         df = df[self.feature_cols].dropna()
@@ -122,9 +122,15 @@ class MLEngine:
         )
         anomaly_lstm, health = self._compute_anomalies(df_scaled)
         predictions = self._make_predictions(df_scaled, anomaly_lstm, health)
+        
+        # Use provided asset_id or generate default
+        if asset_id is None:
+            import uuid
+            asset_id = f"Solar_Panel_{str(uuid.uuid4())[:8]}"
+        
         logger.info("ML analysis end")
         return {
-            "asset_id": "PV_INVERTER_001",
+            "asset_id": asset_id,
             "failure_probability": round(predictions["failure_prob"], 2),
             "expected_ttf_days": round(predictions["ttf_days"], 1),
             "expected_rul_days": round(predictions["rul_days"], 1),

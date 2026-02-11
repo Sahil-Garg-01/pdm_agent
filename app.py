@@ -14,7 +14,7 @@ service = AnalysisService(config)
 async def analyze_sensor_data(data: SensorData):
     try:
         logger.info(f"Processing request with {len(data.vdc1)} voltage and {len(data.idc1)} current data points")
-        ml_output, agent_output = service.analyze(data.vdc1, data.idc1, data.api_key)
+        ml_output, agent_output = service.analyze(data.vdc1, data.idc1, data.api_key, data.asset_id)
         return AnalysisResponse(ml_output=ml_output, agent_output=agent_output)
     except HTTPException:
         raise
