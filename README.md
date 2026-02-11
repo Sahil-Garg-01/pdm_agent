@@ -11,7 +11,8 @@ Accepts voltage and current sensor data, returns ML predictions and agent diagno
 ```json
 {
   "vdc1": [600.0, 601.0, 602.0],
-  "idc1": [10.0, 10.1, 10.2]
+  "idc1": [10.0, 10.1, 10.2],
+  "api_key": "your_google_api_key_here"  // Optional: enables AI diagnosis
 }
 ```
 

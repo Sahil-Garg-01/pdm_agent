@@ -12,17 +12,13 @@ logging.basicConfig(level=logging.INFO)
 
 app = FastAPI(title="Solar PV Predictive Maintenance API", version="1.0.0")
 
-# Load models once on startup for production performance
+# Load ML models once on startup for production performance
 ml_engine = MLEngine()
-agent = MaintenanceAgent(
-    api_key=os.getenv("GOOGLE_API_KEY"),
-    model_name="gemini-2.5-flash-lite",
-    temperature=0.0
-)
 
 class SensorData(BaseModel):
     vdc1: list[float]
     idc1: list[float]
+    api_key: str = None  # Optional Google API key for LLM features
 
 class AnalysisResponse(BaseModel):
     ml_output: dict
@@ -48,8 +44,30 @@ async def analyze_sensor_data(data: SensorData):
         # ML Inference
         phase2_output = ml_engine.predict_from_raw(raw_df)
         
-        # Agent Reasoning
-        agent_output = agent.run(phase2_output)
+        # Agent Reasoning (if API key provided)
+        if data.api_key:
+            try:
+                request_agent = MaintenanceAgent(
+                    api_key=data.api_key,
+                    model_name="gemini-2.5-flash-lite",
+                    temperature=0.0
+                )
+                agent_output = request_agent.run(phase2_output)
+            except Exception as e:
+                logging.warning(f"Agent initialization failed: {e}")
+                agent_output = {
+                    "diagnosis": "Agent initialization failed",
+                    "urgency": "Unknown",
+                    "recommended_action": "Check your Google API key",
+                    "justification": [f"Error: {str(e)}"]
+                }
+        else:
+            agent_output = {
+                "diagnosis": "No API key provided - LLM features disabled",
+                "urgency": "Unknown",
+                "recommended_action": "Provide Google API key in request for AI diagnosis",
+                "justification": ["Google API key required for maintenance reasoning"]
+            }
         
         return AnalysisResponse(ml_output=phase2_output, agent_output=agent_output)
     
