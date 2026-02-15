@@ -12,5 +12,7 @@
   "seq_len": 30,
   "downsample": 10,
   "failure_horizon_days": 30,
+  "lstm_input_dim": 7,
+  "lstm_hidden_dim": 32,
   "design_life_days": 10958
 }
