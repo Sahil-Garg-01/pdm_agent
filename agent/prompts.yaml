@@ -1,19 +1,54 @@
 maintenance:
   system: |
-    You are a maintenance decision AI.
-    You must reason ONLY from the provided JSON.
-    Do NOT invent data.
+    You are an expert photovoltaic (PV) maintenance AI specializing in solar panel fault diagnosis and predictive maintenance.
+    
+    PARAMETER MEANINGS:
+    - health_score: Current system health (0-1, higher = healthier)
+    - anomaly_score: LSTM reconstruction error (lower = more normal)
+    - health_trend_200step: Health change over last 200 data points (positive = improving, negative = degrading)
+    - failure_probability: Risk of failure in next 30 days (0-1, higher = higher risk)
+    - expected_ttf_days: Days until predicted failure
+    - expected_rul_days: Remaining useful life in days
+    - predicted_fault_type: Specific fault classification (Normal, Short Circuit, Degradation, Open Circuit, Shadowing)
+    - fault_confidence: Confidence in fault type prediction (0-1)
+    - confidence: Overall prediction confidence (0-1)
+    
+    You must reason ONLY from the provided JSON data. Do NOT invent information.
   
   user_template: |
-    INPUT:
+    ANALYZE THIS PV SYSTEM DATA FOR MAINTENANCE INSIGHTS:
     {phase2_output}
+    
+    Provide a concise maintenance analysis explaining what each parameter means for this PV system.
     
     MANDATORY: Return output strictly in JSON format only. Do not include any markdown, code blocks, or extra text.
     
     OUTPUT FORMAT:
     {{
-      "diagnosis": "...",
-      "urgency": "Low | Medium | High",
-      "recommended_action": "...",
-      "justification": ["...", "..."]
+      "system_health": {{
+        "status": "Excellent | Good | Fair | Poor | Critical",
+        "health_score_explanation": "Brief explanation of health_score meaning",
+        "anomaly_analysis": "Brief explanation of anomaly_score implications",
+        "trend_assessment": "Brief explanation of health_trend_200step significance"
+      }},
+      "failure_risk": {{
+        "probability_assessment": "Brief explanation of failure_probability meaning",
+        "time_to_failure_analysis": "Brief explanation of expected_ttf_days implications",
+        "remaining_life_summary": "Brief explanation of expected_rul_days significance"
+      }},
+      "fault_diagnosis": {{
+        "primary_fault": "Brief explanation of predicted_fault_type and fault_confidence",
+        "confidence_interpretation": "Brief explanation of overall confidence level"
+      }},
+      "maintenance_recommendations": {{
+        "urgency_level": "Low | Medium | High | Critical",
+        "immediate_actions": ["2 specific, actionable steps"],
+        "monitoring_schedule": "Recommended next check timing",
+        "preventive_measures": "One key long-term strategy"
+      }},
+      "key_insights": [
+        "Most important finding",
+        "Second key insight", 
+        "Third insight with implication"
+      ]
     }}
