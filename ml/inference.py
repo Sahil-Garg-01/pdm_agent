@@ -36,6 +36,8 @@ class MLEngine:
         self.window = config["window"]
         self.seq_len = config["seq_len"]
         self.design_life_days = config["design_life_days"]
+        self.lstm_input_dim = config.get("lstm_input_dim", len(self.feature_cols))
+        self.lstm_hidden_dim = config.get("lstm_hidden_dim", 32)
 
     def _load_scaler(self):
         """Load and reconstruct StandardScaler from JSON."""
@@ -68,8 +70,8 @@ class MLEngine:
     def _load_lstm_model(self):
         """Load LSTM autoencoder from safetensors."""
         self.lstm = LSTMAutoencoder(
-            input_dim=len(self.feature_cols),
-            hidden_dim=32
+            input_dim=self.lstm_input_dim,
+            hidden_dim=self.lstm_hidden_dim
         )
         state_dict = load_file(os.path.join(ARTIFACTS_DIR, "lstm_autoencoder.safetensors"))
         self.lstm.load_state_dict(state_dict)

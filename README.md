@@ -43,6 +43,7 @@ Analyzes sensor data and returns ML predictions with optional AI diagnosis.
 {
   "vdc1": [600.0, 601.0, 602.0],
   "idc1": [10.0, 10.1, 10.2],
+  "pvt": [25.0, 25.1, 25.2],
   "api_key": "your_google_api_key_here",
   "asset_id": "PV_INVERTER_001"
 }
@@ -50,6 +51,7 @@ Analyzes sensor data and returns ML predictions with optional AI diagnosis.
 
 **Parameters:**
 - `vdc1`, `idc1`: Voltage and current sensor readings
+- `pvt`: PV temperature readings (required)
 - `api_key`: Optional Google API key for AI diagnosis
 - `asset_id`: Optional asset identifier (auto-generated if not provided)
 
@@ -76,11 +78,12 @@ Analyzes sensor data and returns ML predictions with optional AI diagnosis.
 
 1. **Input Validation**: Ensures voltage/current arrays match and contain sufficient data points
 2. **Data Preparation**: Pads input to 100 data points for consistent processing
-3. **Feature Engineering**: Creates 7 statistical features using rolling window analysis:
+3. **Feature Engineering**: Creates 10 statistical features using rolling window analysis:
    - Voltage mean/standard deviation
    - Power mean/standard deviation
    - Power delta and slope
    - Normalized efficiency
+   - Temperature mean/standard deviation/delta
 4. **ML Inference**: Processes features through anomaly detection and prediction models
 5. **Agent Analysis**: LLM analyzes ML results for human-readable diagnosis (if API key provided)
 
@@ -106,6 +109,7 @@ curl -X POST "http://localhost:7860/analyze" \
   -d '{
     "vdc1": [600.0, 601.0, 602.0],
     "idc1": [10.0, 10.1, 10.2],
+    "pvt": [25.0, 25.1, 25.2],
     "api_key": "your_api_key",
     "asset_id": "PV_INVERTER_001"
   }'

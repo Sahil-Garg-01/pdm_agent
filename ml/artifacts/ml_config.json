@@ -6,13 +6,16 @@
     "pdc_std",
     "pdc_delta",
     "pdc_slope",
-    "efficiency_norm"
+    "efficiency_norm",
+    "temp_mean",
+    "temp_std",
+    "temp_delta"
   ],
   "window": 50,
   "seq_len": 30,
   "downsample": 10,
   "failure_horizon_days": 30,
-  "lstm_input_dim": 7,
+  "lstm_input_dim": 10,
   "lstm_hidden_dim": 32,
   "design_life_days": 10958
 }

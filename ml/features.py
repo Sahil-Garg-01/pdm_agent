@@ -14,4 +14,7 @@ def build_features(df, window):
     )
     df["efficiency"] = df["pdc1"] / (df["vdc1"] * df["idc1"] + 1e-6)
     df["efficiency_norm"] = df["efficiency"] / df["efficiency"].rolling(window).mean()
+    df["temp_mean"] = df["pvt"].rolling(window).mean()
+    df["temp_std"] = df["pvt"].rolling(window).std()
+    df["temp_delta"] = df["pvt"].diff()
     return df
